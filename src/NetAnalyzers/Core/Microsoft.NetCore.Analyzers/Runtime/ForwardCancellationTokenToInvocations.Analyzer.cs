@@ -352,9 +352,16 @@ namespace Microsoft.NetCore.Analyzers.Runtime
                 IMethodSymbol methodToCompare)
             {
                 // Avoid comparing to itself, or when there are no parameters, or when the last parameter is not a ct
-                if (originalMethod.Equals(methodToCompare) ||
-                    methodToCompare.Parameters.Count(p => p.Type.Equals(cancellationTokenType)) != 1 ||
-                    !methodToCompare.Parameters[^1].Type.Equals(cancellationTokenType))
+                if (originalMethod.Equals(methodToCompare))
+                {
+                    return false;
+                }
+                
+                var usesCancellationToken = methodToCompare.Parameters.Any() && methodToCompare.Parameters[^1].Type.Equals(cancellationTokenType);
+                var usesNullableCancellationToken = methodToCompare.Parameters.Any() && methodToCompare.Parameters[^1].Type is INamedTypeSymbol { OriginalDefinition.SpecialType: SpecialType.System_Nullable_T } ctoken && ctoken.TypeArguments.Single().Equals(cancellationTokenType);
+                var usesAnyToken = usesCancellationToken || usesNullableCancellationToken;
+                
+                if (!usesAnyToken && methodToCompare.Parameters.Count(p => p.Type.Equals(cancellationTokenType)) != 1)
                 {
                     return false;
                 }

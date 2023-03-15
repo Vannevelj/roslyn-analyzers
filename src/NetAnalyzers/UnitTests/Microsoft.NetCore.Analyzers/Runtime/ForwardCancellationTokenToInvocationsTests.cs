@@ -84,6 +84,23 @@ class C
         }
 
         [Fact]
+        public Task CS_NoDiagnostic_OverloadNullableTokenAsync()
+        {
+            return VerifyCS.VerifyAnalyzerAsync(@"
+using System.Threading;
+using System.Threading.Tasks;
+class C
+{
+    async void M(CancellationToken? ct)
+    {
+        await [|MethodAsync|]();
+    }
+    Task MethodAsync() => Task.CompletedTask;
+    Task MethodAsync(CancellationToken c) => Task.CompletedTask;
+}");
+        }
+
+        [Fact]
         public Task CS_NoDiagnostic_OverloadArgumentsDontMatchAsync()
         {
             return VerifyCS.VerifyAnalyzerAsync(@"
@@ -1017,6 +1034,70 @@ class C
         }
 
         [Fact]
+        public Task CS_Diagnostic_OverloadTokenNullableAsync()
+        {
+            string originalCode = @"
+using System.Threading;
+using System.Threading.Tasks;
+class C
+{
+    async void M(CancellationToken ct)
+    {
+        await [|MethodAsync|]();
+    }
+    Task MethodAsync() => Task.CompletedTask;
+    Task MethodAsync(CancellationToken? c) => Task.CompletedTask;
+}
+            ";
+            string fixedCode = @"
+using System.Threading;
+using System.Threading.Tasks;
+class C
+{
+    async void M(CancellationToken ct)
+    {
+        await MethodAsync(ct);
+    }
+    Task MethodAsync() => Task.CompletedTask;
+    Task MethodAsync(CancellationToken? c) => Task.CompletedTask;
+}
+            ";
+            return VerifyCS.VerifyCodeFixAsync(originalCode, fixedCode);
+        }
+
+        [Fact]
+        public Task CS_Diagnostic_OverloadNullableTokenNullableAsync()
+        {
+            string originalCode = @"
+using System.Threading;
+using System.Threading.Tasks;
+class C
+{
+    async void M(CancellationToken? ct)
+    {
+        await [|MethodAsync|]();
+    }
+    Task MethodAsync() => Task.CompletedTask;
+    Task MethodAsync(CancellationToken? c) => Task.CompletedTask;
+}
+            ";
+            string fixedCode = @"
+using System.Threading;
+using System.Threading.Tasks;
+class C
+{
+    async void M(CancellationToken? ct)
+    {
+        await MethodAsync(ct);
+    }
+    Task MethodAsync() => Task.CompletedTask;
+    Task MethodAsync(CancellationToken? c) => Task.CompletedTask;
+}
+            ";
+            return VerifyCS.VerifyCodeFixAsync(originalCode, fixedCode);
+        }
+
+        [Fact]
         public Task CS_Diagnostic_OverloadToken_WithConfigureAwaitAsync()
         {
             string originalCode = @"
@@ -1075,6 +1156,38 @@ class C
     }
     Task MethodAsync() => Task.CompletedTask;
     Task MethodAsync(CancellationToken c = default) => Task.CompletedTask;
+}
+            ";
+            return VerifyCS.VerifyCodeFixAsync(originalCode, fixedCode);
+        }
+
+        [Fact]
+        public Task CS_Diagnostic_OverloadTokenDefaultNullableAsync()
+        {
+            string originalCode = @"
+using System.Threading;
+using System.Threading.Tasks;
+class C
+{
+    async void M(CancellationToken ct)
+    {
+        await [|MethodAsync|]();
+    }
+    Task MethodAsync() => Task.CompletedTask;
+    Task MethodAsync(CancellationToken? c = default) => Task.CompletedTask;
+}
+            ";
+            string fixedCode = @"
+using System.Threading;
+using System.Threading.Tasks;
+class C
+{
+    async void M(CancellationToken ct)
+    {
+        await MethodAsync(ct);
+    }
+    Task MethodAsync() => Task.CompletedTask;
+    Task MethodAsync(CancellationToken? c = default) => Task.CompletedTask;
 }
             ";
             return VerifyCS.VerifyCodeFixAsync(originalCode, fixedCode);
